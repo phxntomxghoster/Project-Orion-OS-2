@@ -1,247 +1,1019 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Orion OS - Pro Hub</title>
-    
-    <link rel="manifest" href="manifest.json">
-    
-    <style>
-        /* PS5 Pro Aesthetic: Matte darks, crisp whites, three-stripe motif, glass panels */
-        :root {
-            --pro-bg: #050505;
-            --pro-surface: #111111;
-            --pro-accent: #ffffff;
-            --pro-stripe: rgba(255, 255, 255, 0.03);
-            --pro-text: #e0e0e0;
-            --pro-blue: #00439c; 
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#020306">
+<title>Orion OS — Pro Hub</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  :root{
+    --os-bg:#020306;
+    --os-surface:rgba(255,255,255,.045);
+    --os-surface-hi:rgba(255,255,255,.08);
+    --os-line:rgba(255,255,255,.09);
+    --os-blue:#0072ce;
+    --os-blue-glow:#57b2ff;
+    --os-white:#f3f4f7;
+    --os-grey:#8a8c98;
+    --os-grey-dim:#5b5d68;
+    --tier-bronze:#cd8a4d;
+    --tier-silver:#c9cbd4;
+    --tier-gold:#ffcf58;
+    --radius-lg:18px;
+    --radius-md:12px;
+    --radius-sm:8px;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:var(--font);}
+  html,body{height:100%;}
+  body{
+    background:
+      radial-gradient(circle at 82% -8%, rgba(0,114,206,.20), transparent 45%),
+      radial-gradient(circle at -8% 108%, rgba(0,114,206,.12), transparent 42%),
+      var(--os-bg);
+    color:var(--os-white);
+    width:100vw;overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;}
+  input{font:inherit;color:inherit;}
+  ::selection{background:rgba(0,114,206,.4);}
+  *:focus-visible{outline:2px solid var(--os-blue-glow);outline-offset:2px;border-radius:4px;}
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; }
-        
-        body {
-            background-color: var(--pro-bg);
-            color: var(--pro-text);
-            height: 100vh;
-            width: 100vw;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
+  .glass{
+    background:var(--os-surface);
+    backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
+    border:1px solid var(--os-line);
+    border-radius:var(--radius-lg);
+  }
 
-        /* PS5 Pro Signature Stripes */
-        .pro-stripes {
-            position: absolute; top: 50%; width: 100%; height: 120px;
-            transform: translateY(-50%);
-            background: linear-gradient(to bottom, transparent 20%, var(--pro-stripe) 20%, var(--pro-stripe) 30%, transparent 30%, transparent 45%, var(--pro-stripe) 45%, var(--pro-stripe) 55%, transparent 55%, transparent 70%, var(--pro-stripe) 70%, var(--pro-stripe) 80%, transparent 80%);
-            z-index: 0; pointer-events: none;
-        }
+  /* ---------- Orion belt mark (brand icon, used in dock + boot) ---------- */
+  .belt-icon circle{fill:var(--os-blue-glow);}
+  .belt-icon line{stroke:var(--os-grey-dim);stroke-width:1;stroke-dasharray:2 3;}
 
-        #app-container { position: relative; z-index: 10; height: 100%; display: flex; flex-direction: column; }
+  /* ---------- Boot sequence ---------- */
+  #boot-screen{
+    position:fixed;inset:0;z-index:9999;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;
+    background:var(--os-bg);
+    transition:opacity .6s ease;
+  }
+  #boot-screen.hide{opacity:0;pointer-events:none;}
+  .boot-mark{width:120px;height:60px;}
+  .boot-mark .star{opacity:0;transform-origin:center;animation:starIn .5s ease forwards;}
+  .boot-mark .star:nth-child(1){animation-delay:.15s;}
+  .boot-mark .star:nth-child(2){animation-delay:.4s;}
+  .boot-mark .star:nth-child(3){animation-delay:.65s;}
+  .boot-mark .belt-line{stroke-dasharray:80;stroke-dashoffset:80;animation:drawLine .7s ease forwards .9s;}
+  .boot-mark .belt-ring{stroke-dasharray:220;stroke-dashoffset:220;opacity:0;animation:drawRing 1s ease forwards 1.2s;}
+  @keyframes starIn{from{opacity:0;transform:scale(0);}to{opacity:1;transform:scale(1);}}
+  @keyframes drawLine{to{stroke-dashoffset:0;}}
+  @keyframes drawRing{0%{stroke-dashoffset:220;opacity:0;}15%{opacity:1;}100%{stroke-dashoffset:0;opacity:1;}}
+  .boot-title{font-weight:300;font-size:30px;letter-spacing:9px;opacity:0;animation:fadeUp .7s ease forwards 1.9s;}
+  .boot-sub{font-weight:600;font-size:11px;letter-spacing:5px;color:var(--os-blue-glow);opacity:0;animation:fadeUp .7s ease forwards 2.15s;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  #boot-skip{position:absolute;bottom:34px;font-size:12px;color:var(--os-grey-dim);opacity:0;animation:fadeUp .6s ease forwards 2.4s;}
 
-        /* Sleek Boot / Auth Screen Overlay */
-        #auth-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--pro-bg); z-index: 9999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
+  /* ---------- Auth screen ---------- */
+  #auth-screen{
+    position:fixed;inset:0;z-index:9000;display:none;
+    align-items:center;justify-content:center;overflow:hidden;
+  }
+  .auth-stripes{
+    position:absolute;top:50%;left:50%;width:1100px;height:180px;
+    transform:translate(-50%,-50%) rotate(-6deg);
+    background:repeating-linear-gradient(
+      to bottom,
+      transparent 0 22px,
+      rgba(255,255,255,.035) 22px 40px,
+      transparent 40px 62px,
+      rgba(0,114,206,.06) 62px 80px
+    );
+    pointer-events:none;
+  }
+  .auth-card{
+    position:relative;width:380px;padding:46px 42px;text-align:center;
+  }
+  .auth-card .belt-icon{margin:0 auto 18px;display:block;}
+  .auth-card h1{font-weight:300;font-size:26px;letter-spacing:4px;margin-bottom:4px;}
+  .auth-card p.edition{font-size:10px;color:var(--os-blue-glow);letter-spacing:4px;font-weight:600;margin-bottom:30px;}
+  .field{position:relative;margin-bottom:14px;}
+  .field input{
+    width:100%;padding:14px 16px;background:rgba(255,255,255,.04);
+    border:1px solid var(--os-line);border-radius:var(--radius-sm);outline:none;
+    transition:border-color .2s, background .2s;
+  }
+  .field input:focus{border-color:var(--os-blue);background:rgba(255,255,255,.06);}
+  .field input::placeholder{color:var(--os-grey-dim);}
+  .auth-card button.primary{
+    width:100%;padding:14px;margin-top:8px;background:var(--os-white);color:#0a0a0c;
+    font-weight:700;font-size:14px;border-radius:var(--radius-sm);
+    transition:background .2s, transform .15s;
+  }
+  .auth-card button.primary:hover{background:var(--os-blue-glow);color:#04121e;}
+  .auth-card button.primary:active{transform:scale(.98);}
+  .auth-hint{margin-top:16px;font-size:11px;color:var(--os-grey-dim);}
 
-        .auth-card {
-            background: var(--pro-surface); padding: 50px; border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.1); text-align: center; width: 380px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.8);
-        }
+  /* ---------- App shell ---------- */
+  #app{display:none;height:100vh;flex-direction:column;}
+  .dock{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 34px;gap:20px;border-bottom:1px solid var(--os-line);flex-shrink:0;
+  }
+  .dock-left{display:flex;align-items:center;gap:34px;min-width:0;}
+  .brand{display:flex;align-items:center;gap:10px;color:var(--os-grey);}
+  .brand span{font-size:13px;font-weight:700;letter-spacing:2px;white-space:nowrap;}
+  .dock-nav{display:flex;gap:6px;}
+  .dock-btn{
+    display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;
+    color:var(--os-grey);font-size:13px;font-weight:600;transition:color .2s,background .2s;white-space:nowrap;
+  }
+  .dock-btn svg{width:17px;height:17px;flex-shrink:0;}
+  .dock-btn:hover{color:var(--os-white);}
+  .dock-btn.active{color:var(--os-white);background:rgba(255,255,255,.07);}
+  .dock-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .icon-btn{
+    width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    color:var(--os-grey);transition:background .2s,color .2s;position:relative;
+  }
+  .icon-btn svg{width:18px;height:18px;}
+  .icon-btn:hover{background:rgba(255,255,255,.07);color:var(--os-white);}
+  .icon-btn[hidden]{display:none;}
+  .badge{
+    position:absolute;top:5px;right:5px;width:8px;height:8px;border-radius:50%;
+    background:var(--os-blue-glow);border:2px solid var(--os-bg);
+  }
+  .badge[hidden]{display:none;}
+  .user-chip{display:flex;align-items:center;gap:9px;padding:5px 12px 5px 5px;border-radius:999px;background:rgba(255,255,255,.05);margin:0 2px;}
+  .avatar{
+    width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg,var(--os-blue),#0a3b63);font-size:12px;font-weight:700;flex-shrink:0;
+  }
+  .user-chip span{font-size:13px;font-weight:600;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
-        .auth-card h1 { color: var(--pro-accent); font-size: 32px; letter-spacing: 2px; margin-bottom: 5px; font-weight: 300; }
-        .auth-card p { font-size: 12px; color: #666; margin-bottom: 25px; letter-spacing: 1px; }
-        .auth-card input { width: 100%; padding: 15px; margin-bottom: 15px; background: #1a1a1a; border: 1px solid #333; color: white; border-radius: 6px; outline: none; transition: 0.3s; }
-        .auth-card input:focus { border-color: var(--pro-accent); }
-        .auth-card button { width: 100%; padding: 15px; background: var(--pro-accent); color: black; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; transition: 0.2s; }
-        .auth-card button:hover { background: #d0d0d0; }
+  .dropdown{
+    position:absolute;top:52px;right:34px;width:300px;max-height:360px;overflow-y:auto;
+    z-index:400;display:none;flex-direction:column;padding:8px;gap:4px;
+  }
+  .dropdown.open{display:flex;}
+  .dropdown h4{font-size:11px;color:var(--os-grey-dim);font-weight:700;letter-spacing:1px;padding:8px 10px 4px;}
+  .notif{display:flex;gap:10px;padding:9px 10px;border-radius:var(--radius-sm);align-items:flex-start;}
+  .notif:hover{background:rgba(255,255,255,.05);}
+  .notif .dot{width:7px;height:7px;border-radius:50%;background:var(--os-blue-glow);margin-top:5px;flex-shrink:0;}
+  .notif .body p{font-size:12.5px;line-height:1.4;color:var(--os-grey);}
+  .notif .body b{color:var(--os-white);}
+  .notif-empty{padding:20px 10px;text-align:center;font-size:12.5px;color:var(--os-grey-dim);}
 
-        /* Main Hub Header */
-        .hub-header {
-            display: flex; justify-content: space-between; align-items: center; padding: 30px 50px;
-        }
+  main{flex:1;min-height:0;padding:28px 34px 34px;overflow:hidden;}
+  .view{display:none;height:100%;flex-direction:column;min-height:0;}
+  .view.active{display:flex;}
+  .view-head{margin-bottom:20px;flex-shrink:0;}
+  .view-head h1{font-size:24px;font-weight:300;}
+  .view-head p{font-size:13px;color:var(--os-grey);margin-top:4px;}
 
-        .hub-nav { display: flex; gap: 30px; font-size: 18px; font-weight: 500; }
-        .hub-nav span { color: #666; cursor: pointer; transition: 0.2s; }
-        .hub-nav span.active { color: var(--pro-accent); font-weight: 700; border-bottom: 2px solid var(--pro-accent); padding-bottom: 5px; }
-        .hub-nav span:hover:not(.active) { color: white; }
+  /* scrollbars */
+  .scroll::-webkit-scrollbar{width:5px;height:5px;}
+  .scroll::-webkit-scrollbar-thumb{background:#2a2b33;border-radius:5px;}
+  .scroll::-webkit-scrollbar-track{background:transparent;}
 
-        .sys-widgets { display: flex; gap: 20px; align-items: center; font-size: 13px; color: #888; font-weight: bold; }
-        .install-btn { background: rgba(255,255,255,0.1); color: white; padding: 8px 16px; border-radius: 20px; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); display: none; }
-        
-        .play-btn { background: var(--pro-accent); color: black; padding: 8px 24px; border-radius: 20px; font-weight: bold; cursor: pointer; border: none; }
-        .play-btn:hover { background: #d0d0d0; }
+  /* ---------- Home view ---------- */
+  #view-home .view-head p b{color:var(--os-white);}
+  .hero-row{display:flex;gap:16px;overflow-x:auto;padding-bottom:6px;flex-shrink:0;}
+  .hero-card{
+    flex:0 0 300px;height:150px;padding:20px;display:flex;flex-direction:column;justify-content:space-between;
+    cursor:pointer;transition:border-color .2s, transform .2s;
+  }
+  .hero-card:hover{border-color:var(--os-blue);transform:translateY(-2px);}
+  .hero-card .tag{font-size:11px;color:var(--os-blue-glow);font-weight:700;letter-spacing:1px;}
+  .hero-card h3{font-size:17px;font-weight:600;margin-top:6px;}
+  .hero-card p{font-size:12.5px;color:var(--os-grey);margin-top:4px;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .hero-card .go{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--os-white);}
+  .hero-card .go svg{width:14px;height:14px;}
 
-        /* Chat UI Layout */
-        .chat-container {
-            display: grid; grid-template-columns: 280px 1fr; flex: 1; padding: 0 50px 30px 50px; gap: 20px;
-        }
+  .quick-title{font-size:14px;font-weight:600;color:var(--os-grey);margin:26px 0 12px;flex-shrink:0;}
+  .quick-row{display:flex;gap:14px;flex-shrink:0;}
+  .quick-card{
+    flex:1;padding:18px;display:flex;align-items:center;gap:14px;cursor:pointer;
+    transition:border-color .2s,transform .2s;
+  }
+  .quick-card:hover{border-color:var(--os-blue);transform:translateY(-2px);}
+  .quick-card .ic{width:40px;height:40px;border-radius:var(--radius-sm);background:rgba(0,114,206,.15);display:flex;align-items:center;justify-content:center;color:var(--os-blue-glow);flex-shrink:0;}
+  .quick-card .ic svg{width:20px;height:20px;}
+  .quick-card b{font-size:14px;display:block;}
+  .quick-card span{font-size:12px;color:var(--os-grey);}
 
-        .sidebar, .chat-area {
-            background: rgba(17, 17, 17, 0.7); backdrop-filter: blur(25px);
-            border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); padding: 20px;
-        }
-        
-        .sidebar { display: flex; flex-direction: column; gap: 15px; }
-        .chat-area { display: flex; flex-direction: column; }
+  /* ---------- Messages view ---------- */
+  .msg-layout{display:grid;grid-template-columns:250px 1fr;gap:16px;flex:1;min-height:0;}
+  .sidebar{padding:16px;display:flex;flex-direction:column;gap:4px;min-height:0;}
+  .sidebar h4{font-size:11px;color:var(--os-grey-dim);font-weight:700;letter-spacing:1px;padding:6px 10px 10px;}
+  .channel-list{overflow-y:auto;display:flex;flex-direction:column;gap:2px;flex:1;min-height:0;}
+  .channel{
+    padding:10px 12px;border-radius:var(--radius-sm);cursor:pointer;color:var(--os-grey);
+    font-size:13.5px;transition:background .2s,color .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .channel:hover{background:rgba(255,255,255,.05);color:var(--os-white);}
+  .channel.active{background:rgba(0,114,206,.16);color:var(--os-white);font-weight:600;}
+  .new-channel-btn{
+    display:flex;align-items:center;gap:8px;padding:11px 12px;margin-top:10px;border-radius:var(--radius-sm);
+    border:1px dashed var(--os-line);color:var(--os-grey);font-size:13px;font-weight:600;transition:border-color .2s,color .2s;
+  }
+  .new-channel-btn:hover{border-color:var(--os-blue);color:var(--os-white);}
+  .new-channel-btn svg{width:15px;height:15px;}
 
-        .channel { padding: 12px 15px; border-radius: 8px; cursor: pointer; color: #888; font-size: 14px; transition: 0.2s; }
-        .channel:hover { background: rgba(255,255,255,0.05); color: var(--pro-accent); }
-        .channel.active { background: rgba(255,255,255,0.1); color: var(--pro-accent); font-weight: bold; }
+  .chat-area{display:flex;flex-direction:column;min-height:0;padding:18px 18px 16px;}
+  .chat-area h2{font-size:16px;font-weight:600;margin-bottom:14px;flex-shrink:0;}
+  .messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-right:6px;min-height:0;}
+  .msg-row{display:flex;gap:10px;max-width:78%;}
+  .msg-row .avatar{width:30px;height:30px;font-size:11px;}
+  .msg-row.system .avatar{background:linear-gradient(135deg,#3a3d48,#1c1d24);}
+  .msg-bubble{background:rgba(255,255,255,.05);padding:11px 14px;border-radius:var(--radius-sm);border:1px solid var(--os-line);}
+  .msg-meta{display:flex;gap:8px;align-items:baseline;margin-bottom:3px;}
+  .msg-author{font-size:12px;font-weight:700;}
+  .msg-time{font-size:10.5px;color:var(--os-grey-dim);}
+  .msg-text{font-size:13.5px;line-height:1.5;color:#d6d7dd;word-break:break-word;}
+  .chat-input-box{display:flex;gap:10px;margin-top:14px;flex-shrink:0;}
+  .chat-input-box input{
+    flex:1;padding:13px 16px;background:rgba(255,255,255,.04);border:1px solid var(--os-line);
+    border-radius:var(--radius-sm);outline:none;transition:border-color .2s;
+  }
+  .chat-input-box input:focus{border-color:var(--os-blue);}
+  .send-btn{
+    width:46px;height:46px;border-radius:var(--radius-sm);background:var(--os-white);color:#0a0a0c;
+    display:flex;align-items:center;justify-content:center;transition:background .2s;flex-shrink:0;
+  }
+  .send-btn:hover{background:var(--os-blue-glow);}
+  .send-btn svg{width:18px;height:18px;}
 
-        .btn-new-group { background: transparent; color: var(--pro-accent); border: 1px solid rgba(255,255,255,0.2); padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .btn-new-group:hover { background: rgba(255,255,255,0.1); }
+  /* ---------- Games view ---------- */
+  .games-row{display:flex;gap:16px;overflow-x:auto;padding-bottom:8px;}
+  .game-tile{
+    flex:0 0 168px;height:210px;border-radius:var(--radius-md);cursor:pointer;
+    background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));
+    border:1px solid var(--os-line);display:flex;flex-direction:column;justify-content:space-between;padding:16px;
+    transition:border-color .2s,transform .2s;
+  }
+  .game-tile:hover{border-color:var(--os-blue);transform:translateY(-3px);}
+  .game-tile .ic{width:42px;height:42px;border-radius:var(--radius-sm);background:rgba(0,114,206,.16);display:flex;align-items:center;justify-content:center;color:var(--os-blue-glow);}
+  .game-tile .ic svg{width:21px;height:21px;}
+  .game-tile b{font-size:14px;font-weight:700;line-height:1.3;display:block;}
+  .game-tile span{font-size:11px;color:var(--os-grey-dim);letter-spacing:.5px;}
+  .games-footer{margin-top:22px;display:flex;align-items:center;gap:14px;}
+  .btn-outline{
+    padding:11px 20px;border-radius:999px;border:1px solid var(--os-line);font-size:13px;font-weight:600;
+    display:flex;align-items:center;gap:8px;transition:border-color .2s,color .2s;color:var(--os-grey);
+  }
+  .btn-outline:hover{border-color:var(--os-blue);color:var(--os-white);}
+  .btn-outline svg{width:14px;height:14px;}
 
-        .messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; padding-right: 10px; }
-        .messages::-webkit-scrollbar { width: 5px; }
-        .messages::-webkit-scrollbar-thumb { background: #333; border-radius: 5px; }
+  /* ---------- Trophies view ---------- */
+  .trophy-progress{display:flex;align-items:center;gap:16px;margin-bottom:22px;flex-shrink:0;}
+  .progress-track{flex:1;height:6px;border-radius:6px;background:rgba(255,255,255,.07);overflow:hidden;max-width:340px;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--os-blue),var(--os-blue-glow));border-radius:6px;transition:width .5s ease;}
+  .progress-label{font-size:13px;font-weight:600;color:var(--os-grey);white-space:nowrap;}
+  .trophy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;overflow-y:auto;padding-bottom:10px;}
+  .trophy-card{padding:16px;display:flex;gap:13px;align-items:flex-start;transition:border-color .2s;}
+  .trophy-card.unlocked{border-color:rgba(255,255,255,.14);}
+  .trophy-ic{
+    width:46px;height:46px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;position:relative;
+  }
+  .trophy-ic svg{width:24px;height:24px;}
+  .trophy-card.locked .trophy-ic{background:rgba(255,255,255,.05);color:var(--os-grey-dim);}
+  .trophy-card.locked b, .trophy-card.locked p{color:var(--os-grey-dim);}
+  .tier-bronze .trophy-ic{background:rgba(205,138,77,.18);color:var(--tier-bronze);}
+  .tier-silver .trophy-ic{background:rgba(201,203,212,.16);color:var(--tier-silver);}
+  .tier-gold .trophy-ic{background:rgba(255,207,88,.16);color:var(--tier-gold);}
+  .tier-platinum .trophy-ic{background:linear-gradient(135deg,rgba(207,232,255,.28),rgba(167,139,250,.28));color:#e7ecff;}
+  .trophy-card b{font-size:13.5px;font-weight:700;display:block;}
+  .trophy-card p{font-size:12px;color:var(--os-grey);margin-top:3px;line-height:1.4;}
+  .trophy-card .tier-label{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--os-grey-dim);margin-top:6px;text-transform:capitalize;}
 
-        .msg-bubble { background: #1a1a1a; padding: 15px; border-radius: 10px; font-size: 14px; max-width: 80%; border: 1px solid rgba(255,255,255,0.03); }
-        .msg-author { font-size: 11px; color: #aaa; font-weight: bold; margin-bottom: 5px; letter-spacing: 1px; }
+  /* ---------- Trophy toast ---------- */
+  #trophy-toast{
+    position:fixed;top:22px;right:22px;z-index:8000;
+    display:flex;align-items:center;gap:13px;padding:14px 20px 14px 15px;
+    transform:translateX(420px);opacity:0;transition:transform .5s cubic-bezier(.2,.8,.2,1),opacity .4s;
+  }
+  #trophy-toast.show{transform:translateX(0);opacity:1;}
+  #trophy-toast .trophy-ic{width:42px;height:42px;}
+  .toast-label{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--os-blue-glow);}
+  .toast-name{font-size:14px;font-weight:700;margin-top:2px;}
 
-        .chat-input-box { display: flex; gap: 10px; }
-        .chat-input-box input { flex: 1; padding: 15px; background: #111; border: 1px solid #333; border-radius: 8px; color: white; outline: none; }
-        .chat-input-box button { padding: 0 25px; background: var(--pro-accent); color: black; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; }
+  /* ---------- Modal ---------- */
+  #modal-backdrop{
+    position:fixed;inset:0;z-index:7000;background:rgba(0,0,0,.55);
+    display:none;align-items:center;justify-content:center;
+  }
+  #modal-backdrop.open{display:flex;}
+  .modal{width:340px;padding:26px;}
+  .modal h3{font-size:16px;font-weight:600;margin-bottom:6px;}
+  .modal p{font-size:12.5px;color:var(--os-grey);margin-bottom:16px;line-height:1.4;}
+  .modal input{
+    width:100%;padding:12px 14px;background:rgba(255,255,255,.04);border:1px solid var(--os-line);
+    border-radius:var(--radius-sm);outline:none;margin-bottom:16px;transition:border-color .2s;
+  }
+  .modal input:focus{border-color:var(--os-blue);}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;}
+  .modal-actions button{padding:10px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;}
+  .btn-ghost{color:var(--os-grey);}
+  .btn-ghost:hover{color:var(--os-white);}
+  .btn-solid{background:var(--os-white);color:#0a0a0c;}
+  .btn-solid:hover{background:var(--os-blue-glow);}
 
-        /* Terminal Overlay */
-        #terminal-ui {
-            position: fixed; bottom: 0; left: 0; width: 100%; height: 45vh;
-            background: rgba(5,5,5,0.98); border-top: 1px solid #333;
-            color: #fff; font-family: 'Courier New', monospace; padding: 25px;
-            display: none; z-index: 50000; overflow-y: auto; box-shadow: 0 -10px 50px rgba(0,0,0,0.9);
-        }
-        .term-input { background: transparent; border: none; color: #fff; outline: none; width: 80%; font-family: inherit; font-size: 15px; margin-left: 10px; }
-    </style>
+  /* ---------- Legend (PS5-style control hint) ---------- */
+  #legend{
+    position:fixed;bottom:16px;right:22px;display:flex;gap:16px;z-index:300;
+    font-size:11.5px;color:var(--os-grey-dim);font-weight:600;
+  }
+  #legend span{display:flex;align-items:center;gap:6px;}
+  #legend i{width:14px;height:14px;border-radius:50%;display:inline-block;position:relative;}
+  #legend i.x{border:1.6px solid #4da8ff;}
+  #legend i.x::before,#legend i.x::after{content:"";position:absolute;top:2.5px;left:5.8px;width:1.6px;height:7px;background:#4da8ff;}
+  #legend i.x::before{transform:rotate(45deg);}
+  #legend i.x::after{transform:rotate(-45deg);}
+  #legend i.o{border:1.6px solid #ff6b81;}
+
+  /* ---------- Responsive ---------- */
+  @media (max-width:900px){
+    .dock{padding:14px 18px;}
+    .dock-left{gap:16px;}
+    .dock-btn span{display:none;}
+    .dock-btn{padding:9px;}
+    .user-chip span{display:none;}
+    .user-chip{padding:5px;}
+    main{padding:20px 18px 90px;}
+    .msg-layout{grid-template-columns:1fr;grid-template-rows:auto 1fr;}
+    .sidebar{flex-direction:row;overflow-x:auto;padding:10px;}
+    .channel-list{flex-direction:row;flex:none;}
+    .channel{white-space:nowrap;}
+    .new-channel-btn{white-space:nowrap;}
+    .sidebar h4{display:none;}
+    #legend{display:none;}
+    .dropdown{right:18px;width:260px;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+      animation-duration:.001ms !important;animation-iteration-count:1 !important;
+      transition-duration:.001ms !important;scroll-behavior:auto !important;
+    }
+  }
+</style>
 </head>
 <body>
 
-    <div class="pro-stripes"></div>
+  <!-- ================= BOOT SEQUENCE ================= -->
+  <div id="boot-screen">
+    <svg class="boot-mark" viewBox="0 0 120 60">
+      <circle class="star" cx="14" cy="30" r="3.4"></circle>
+      <circle class="star" cx="60" cy="30" r="3.4"></circle>
+      <circle class="star" cx="106" cy="30" r="3.4"></circle>
+      <line class="belt-line" x1="14" y1="30" x2="106" y2="30"></line>
+      <ellipse class="belt-ring" cx="60" cy="30" rx="56" ry="26" fill="none" stroke="var(--os-blue-glow)" stroke-width="1.4"></ellipse>
+    </svg>
+    <div class="boot-title">ORION OS</div>
+    <div class="boot-sub">PRO EDITION</div>
+    <button id="boot-skip" type="button">Press anywhere to continue</button>
+  </div>
 
-    <!-- Login/Boot Screen -->
-    <div id="auth-screen">
-        <div class="auth-card">
-            <h1>ORION OS</h1>
-            <p>PRO EDITION</p>
-            <input type="text" id="auth-username" placeholder="Username" onkeydown="if(event.key==='Enter') login()">
-            <input type="password" id="auth-password" placeholder="Password (Optional)" onkeydown="if(event.key==='Enter') login()">
-            <button type="button" onclick="login()">BOOT SYSTEM</button>
-        </div>
+  <!-- ================= AUTH SCREEN ================= -->
+  <div id="auth-screen">
+    <div class="auth-stripes"></div>
+    <div class="auth-card glass">
+      <svg class="belt-icon" width="72" height="36" viewBox="0 0 120 60">
+        <circle cx="14" cy="30" r="3.4"></circle>
+        <circle cx="60" cy="30" r="3.4"></circle>
+        <circle cx="106" cy="30" r="3.4"></circle>
+        <line x1="14" y1="30" x2="106" y2="30"></line>
+      </svg>
+      <h1>ORION OS</h1>
+      <p class="edition">PRO EDITION</p>
+      <div class="field">
+        <input type="text" id="auth-username" placeholder="Username" autocomplete="off">
+      </div>
+      <div class="field">
+        <input type="password" id="auth-password" placeholder="Password (optional)">
+      </div>
+      <button type="button" class="primary" id="auth-submit">Continue</button>
+      <p class="auth-hint">Sign in with any username — this hub runs entirely in your browser.</p>
     </div>
+  </div>
 
-    <!-- Main OS Interface -->
-    <div id="app-container">
-        <header class="hub-header">
-            <div class="hub-nav">
-                <span class="active">Communication</span>
-                <span onclick="window.location.href='games.html'">Games Library</span>
-            </div>
-            
-            <div class="sys-widgets">
-                <span id="active-user">User: Offline</span>
-                <span>Network: SECURE</span>
-                <button class="install-btn" id="install-btn" type="button">Install OS App</button>
-                <button class="play-btn" type="button" onclick="window.location.href='games.html'">Launch Games</button>
-            </div>
-        </header>
-
-        <div class="chat-container">
-            <div class="sidebar">
-                <div style="font-size: 11px; color: #666; font-weight: bold; text-transform: uppercase;">Channels</div>
-                <div id="channel-list">
-                    <div class="channel active" onclick="switchChannel('# public-main', this)"># public-main</div>
-                    <div class="channel" onclick="switchChannel('# general-gaming', this)"># general-gaming</div>
-                    <div class="channel" onclick="switchChannel('@ DMs', this)">@ Direct Messages</div>
-                </div>
-                <button class="btn-new-group" type="button" onclick="createGroup()">+ Create # Group</button>
-            </div>
-
-            <div class="chat-area">
-                <h2 id="current-channel" style="font-size: 20px; font-weight: 500; margin-bottom: 20px;"># public-main</h2>
-                <div class="messages" id="chat-history">
-                    <div class="msg-bubble">
-                        <div class="msg-author">System Guard</div>
-                        Welcome to Orion OS. Chat filters are active. Keep it clean and respectful.
-                    </div>
-                </div>
-                <div class="chat-input-box">
-                    <input type="text" id="chat-input" placeholder="Message # public-main..." onkeydown="if(event.key==='Enter') sendMessage()">
-                    <button type="button" onclick="sendMessage()">Send</button>
-                </div>
-            </div>
+  <!-- ================= APP SHELL ================= -->
+  <div id="app">
+    <header class="dock">
+      <div class="dock-left">
+        <div class="brand">
+          <svg class="belt-icon" width="26" height="13" viewBox="0 0 120 60">
+            <circle cx="14" cy="30" r="4.2"></circle>
+            <circle cx="60" cy="30" r="4.2"></circle>
+            <circle cx="106" cy="30" r="4.2"></circle>
+            <line x1="14" y1="30" x2="106" y2="30"></line>
+          </svg>
+          <span>ORION OS</span>
         </div>
+        <nav class="dock-nav" id="dock-nav">
+          <button class="dock-btn active" data-view="home" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-6h6v6"/></svg>
+            <span>Home</span>
+          </button>
+          <button class="dock-btn" data-view="messages" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.2 0-2.4-.3-3.4-.8L3 21l1.8-4.9a8.5 8.5 0 1 1 16.2-4.6Z"/></svg>
+            <span>Messages</span>
+          </button>
+          <button class="dock-btn" data-view="games" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="10" rx="5"/><path d="M7 10v4M5 12h4"/><circle cx="16" cy="10.3" r="1"/><circle cx="18" cy="13" r="1"/></svg>
+            <span>Games</span>
+          </button>
+          <button class="dock-btn" data-view="trophies" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v4a4 4 0 0 1-8 0V4Z"/><path d="M8 5H5a3 3 0 0 0 3 4"/><path d="M16 5h3a3 3 0 0 1-3 4"/><path d="M12 12v4"/><path d="M9 20h6"/><path d="M10 16h4v4h-4z"/></svg>
+            <span>Trophies</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="dock-right">
+        <button class="icon-btn" id="install-btn" type="button" hidden title="Install Orion OS">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+        </button>
+
+        <div style="position:relative;">
+          <button class="icon-btn" id="bell-btn" type="button" title="Notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+            <span class="badge" id="bell-badge" hidden></span>
+          </button>
+          <div class="dropdown glass" id="notif-dropdown">
+            <h4>Notifications</h4>
+            <div id="notif-list"></div>
+          </div>
+        </div>
+
+        <div class="user-chip">
+          <span class="avatar" id="user-avatar">G</span>
+          <span id="active-user">Guest</span>
+        </div>
+
+        <button class="icon-btn" id="power-btn" type="button" title="Sign out">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v8"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <!-- ---------- HOME ---------- -->
+      <section class="view active" id="view-home">
+        <div class="view-head">
+          <h1 id="home-greeting">Welcome back</h1>
+          <p>Here's what's happening across Orion OS.</p>
+        </div>
+
+        <div class="hero-row scroll">
+          <div class="hero-card glass" data-view="messages">
+            <div>
+              <div class="tag">CHAT MESH</div>
+              <h3>Continue the conversation</h3>
+              <p id="home-last-message">No messages yet — say hello in Chat Mesh.</p>
+            </div>
+            <div class="go">Open Messages
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+            </div>
+          </div>
+
+          <div class="hero-card glass" data-view="games">
+            <div>
+              <div class="tag">GAMES LIBRARY</div>
+              <h3>Jump back into a game</h3>
+              <p>5 titles built for Orion OS</p>
+            </div>
+            <div class="go">Browse Games
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+            </div>
+          </div>
+
+          <div class="hero-card glass" data-view="trophies">
+            <div>
+              <div class="tag">TROPHY CASE</div>
+              <h3 id="home-trophy-title">No trophies earned yet</h3>
+              <p id="home-trophy-sub">Explore the hub to start earning</p>
+            </div>
+            <div class="go">View Trophies
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="quick-title">Quick access</div>
+        <div class="quick-row">
+          <div class="quick-card glass" data-view="messages">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.2 0-2.4-.3-3.4-.8L3 21l1.8-4.9a8.5 8.5 0 1 1 16.2-4.6Z"/></svg></div>
+            <div><b>Chat Mesh</b><span>Channels &amp; direct messages</span></div>
+          </div>
+          <div class="quick-card glass" data-view="games">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="10" rx="5"/><circle cx="16" cy="10.3" r="1"/><circle cx="18" cy="13" r="1"/></svg></div>
+            <div><b>Games</b><span>5 titles, growing library</span></div>
+          </div>
+          <div class="quick-card glass" data-view="trophies">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v4a4 4 0 0 1-8 0V4Z"/><path d="M12 12v4"/><path d="M9 20h6"/></svg></div>
+            <div><b>Trophies</b><span id="quick-trophy-count">0 of 5 earned</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- MESSAGES ---------- -->
+      <section class="view" id="view-messages">
+        <div class="msg-layout">
+          <div class="sidebar glass">
+            <h4>Channels</h4>
+            <div class="channel-list" id="channel-list"></div>
+            <button class="new-channel-btn" id="new-channel-btn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+              New channel
+            </button>
+          </div>
+          <div class="chat-area glass">
+            <h2 id="current-channel"># public-main</h2>
+            <div class="messages scroll" id="chat-history"></div>
+            <div class="chat-input-box">
+              <input type="text" id="chat-input" placeholder="Message # public-main…" autocomplete="off">
+              <button class="send-btn" id="send-btn" type="button" title="Send">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- GAMES ---------- -->
+      <section class="view" id="view-games">
+        <div class="view-head">
+          <h1>Games library</h1>
+          <p>Orion Originals, built to run natively on the hub.</p>
+        </div>
+        <div class="games-row scroll" id="games-row"></div>
+        <div class="games-footer">
+          <button class="btn-outline" id="full-library-btn" type="button">
+            View full library
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- ---------- TROPHIES ---------- -->
+      <section class="view" id="view-trophies">
+        <div class="view-head">
+          <h1>Trophy case</h1>
+          <p>Earned by using Orion OS — resets each session.</p>
+        </div>
+        <div class="trophy-progress">
+          <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+          <div class="progress-label" id="progress-label">0 / 5 earned</div>
+        </div>
+        <div class="trophy-grid scroll" id="trophy-grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ================= TROPHY TOAST ================= -->
+  <div id="trophy-toast" class="glass">
+    <div class="trophy-ic" id="toast-ic"></div>
+    <div>
+      <div class="toast-label">TROPHY UNLOCKED</div>
+      <div class="toast-name" id="toast-name"></div>
     </div>
+  </div>
 
-    <div id="terminal-ui" onclick="document.getElementById('term-input').focus()"></div>
+  <!-- ================= MODAL ================= -->
+  <div id="modal-backdrop">
+    <div class="modal glass">
+      <h3 id="modal-title">New channel</h3>
+      <p id="modal-body">Give your channel a name. It'll appear at the top of the sidebar.</p>
+      <input type="text" id="modal-input" placeholder="channel-name">
+      <div class="modal-actions">
+        <button class="btn-ghost" id="modal-cancel" type="button">Cancel</button>
+        <button class="btn-solid" id="modal-confirm" type="button">Create</button>
+      </div>
+    </div>
+  </div>
 
-    <!-- JavaScript Logic -->
-    <script>
-        let currentUser = "";
+  <!-- ================= LEGEND ================= -->
+  <div id="legend">
+    <span><i class="x"></i> Select</span>
+    <span><i class="o"></i> Back</span>
+  </div>
 
-        function login() {
-            const usernameInput = document.getElementById('auth-username').value.trim();
-            
-            if (!usernameInput) {
-                alert("Please enter a username!");
-                return;
-            }
+<script>
+(() => {
+  "use strict";
 
-            currentUser = usernameInput;
+  /* ============ ICON LIBRARY (for JS-rendered elements) ============ */
+  const ICONS = {
+    hash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9h14M5 15h14M10 3 8 21M16 3l-2 18"/></svg>',
+    at: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-4 7.5"/></svg>',
+    controller: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="10" rx="5"/><path d="M7 10v4M5 12h4"/><circle cx="16" cy="10.3" r="1"/><circle cx="18" cy="13" r="1"/></svg>',
+    trophy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v4a4 4 0 0 1-8 0V4Z"/><path d="M8 5H5a3 3 0 0 0 3 4"/><path d="M16 5h3a3 3 0 0 1-3 4"/><path d="M12 12v4"/><path d="M9 20h6"/><path d="M10 16h4v4h-4z"/></svg>',
+    lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+    bolt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>'
+  };
 
-            // Update user tag in header
-            document.getElementById('active-user').innerText = `User: ${currentUser}`;
+  /* ============ STATE ============ */
+  const state = {
+    user: "",
+    activeChannel: "public-main",
+    channels: {
+      "public-main": { label: "# public-main", messages: [
+        { author: "System Guard", text: "Welcome to Orion OS. Chat filters are active. Keep it clean and respectful.", system: true }
+      ]},
+      "general-gaming": { label: "# general-gaming", messages: [] },
+      "dms": { label: "@ Direct Messages", messages: [] }
+    },
+    unlocked: new Set(),
+    notifications: [],
+    unreadNotifs: 0,
+    hasVisitedGames: false
+  };
 
-            // Fade out and remove the auth screen overlay
-            const authScreen = document.getElementById('auth-screen');
-            authScreen.style.opacity = '0';
-            authScreen.style.transition = 'opacity 0.4s ease';
-            
-            setTimeout(() => {
-                authScreen.style.display = 'none';
-            }, 400);
+  const TROPHIES = [
+    { id: "boot",    tier: "bronze",   title: "Systems Online",       desc: "Signed in to Orion OS." },
+    { id: "message", tier: "silver",   title: "First Transmission",   desc: "Sent a message in Chat Mesh." },
+    { id: "channel", tier: "bronze",   title: "Open Frequency",       desc: "Created a new channel." },
+    { id: "games",   tier: "silver",   title: "Library Card",         desc: "Opened the Games library." },
+    { id: "platinum",tier: "platinum", title: "Orion Ascendant",      desc: "Earned every trophy in Orion OS." }
+  ];
+
+  const GAMES = [
+    { key: "bao", title: "B.A.O." },
+    { key: "rgo", title: "RGO" },
+    { key: "gunfall", title: "Gunfall" },
+    { key: "glitchfall", title: "Glitchfall" },
+    { key: "roblicization", title: "Project Roblicization" }
+  ];
+
+  /* ============ BOOT SEQUENCE ============ */
+  const bootScreen = document.getElementById("boot-screen");
+  function endBoot() {
+    bootScreen.classList.add("hide");
+    setTimeout(() => {
+      bootScreen.style.display = "none";
+      document.getElementById("auth-screen").style.display = "flex";
+      document.getElementById("auth-username").focus();
+    }, 550);
+  }
+  const bootTimer = setTimeout(endBoot, 3100);
+  bootScreen.addEventListener("click", () => { clearTimeout(bootTimer); endBoot(); });
+
+  /* ============ AUTH ============ */
+  function login() {
+    const name = document.getElementById("auth-username").value.trim();
+    if (!name) {
+      document.getElementById("auth-username").focus();
+      return;
+    }
+    state.user = name;
+    document.getElementById("active-user").textContent = name;
+    document.getElementById("user-avatar").textContent = name.trim().slice(0, 1).toUpperCase();
+    document.getElementById("home-greeting").textContent = "Welcome back, " + name;
+
+    const authScreen = document.getElementById("auth-screen");
+    authScreen.style.transition = "opacity .35s ease";
+    authScreen.style.opacity = "0";
+    setTimeout(() => {
+      authScreen.style.display = "none";
+      document.getElementById("app").style.display = "flex";
+      unlockTrophy("boot");
+      pushNotification("Welcome back", "Signed in to Orion OS as <b>" + escapeHtml(name) + "</b>.");
+    }, 350);
+  }
+  document.getElementById("auth-submit").addEventListener("click", login);
+  document.getElementById("auth-username").addEventListener("keydown", e => { if (e.key === "Enter") login(); });
+  document.getElementById("auth-password").addEventListener("keydown", e => { if (e.key === "Enter") login(); });
+
+  /* ============ VIEW SWITCHING ============ */
+  function switchView(name) {
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    document.getElementById("view-" + name).classList.add("active");
+    document.querySelectorAll(".dock-btn").forEach(b => b.classList.toggle("active", b.dataset.view === name));
+    if (name === "games" && !state.hasVisitedGames) {
+      state.hasVisitedGames = true;
+      unlockTrophy("games");
+    }
+    closeDropdown();
+  }
+  document.querySelectorAll(".dock-btn[data-view]").forEach(btn => {
+    btn.addEventListener("click", () => switchView(btn.dataset.view));
+  });
+  document.querySelectorAll("[data-view].hero-card, [data-view].quick-card").forEach(el => {
+    el.addEventListener("click", () => switchView(el.dataset.view));
+  });
+
+  /* ============ MESSAGING ============ */
+  function escapeHtml(str) {
+    const d = document.createElement("div");
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  function renderChannelList() {
+    const list = document.getElementById("channel-list");
+    list.innerHTML = "";
+    Object.keys(state.channels).forEach(key => {
+      const ch = state.channels[key];
+      const el = document.createElement("div");
+      el.className = "channel" + (key === state.activeChannel ? " active" : "");
+      el.textContent = ch.label;
+      el.addEventListener("click", () => switchChannel(key));
+      list.appendChild(el);
+    });
+  }
+
+  function switchChannel(key) {
+    state.activeChannel = key;
+    const ch = state.channels[key];
+    document.getElementById("current-channel").textContent = ch.label;
+    document.getElementById("chat-input").placeholder = "Message " + ch.label + "…";
+    renderChannelList();
+    renderMessages();
+  }
+
+  function timeNow() {
+    return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function renderMessages() {
+    const wrap = document.getElementById("chat-history");
+    wrap.innerHTML = "";
+    const ch = state.channels[state.activeChannel];
+    ch.messages.forEach(m => {
+      const row = document.createElement("div");
+      row.className = "msg-row" + (m.system ? " system" : "");
+      const initials = m.system ? "SG" : (m.author || "?").trim().slice(0, 1).toUpperCase();
+      const avatar = document.createElement("div");
+      avatar.className = "avatar";
+      avatar.textContent = initials;
+
+      const bubbleWrap = document.createElement("div");
+      const meta = document.createElement("div");
+      meta.className = "msg-meta";
+      const author = document.createElement("span");
+      author.className = "msg-author";
+      author.textContent = m.author;
+      const time = document.createElement("span");
+      time.className = "msg-time";
+      time.textContent = m.time || "";
+      meta.appendChild(author);
+      meta.appendChild(time);
+
+      const bubble = document.createElement("div");
+      bubble.className = "msg-bubble";
+      const text = document.createElement("div");
+      text.className = "msg-text";
+      text.textContent = m.text;
+      bubble.appendChild(text);
+
+      bubbleWrap.appendChild(meta);
+      bubbleWrap.appendChild(bubble);
+      row.appendChild(avatar);
+      row.appendChild(bubbleWrap);
+      wrap.appendChild(row);
+    });
+    wrap.scrollTop = wrap.scrollHeight;
+    updateHomeMessagePreview();
+  }
+
+  function updateHomeMessagePreview() {
+    const ch = state.channels[state.activeChannel];
+    const last = ch.messages[ch.messages.length - 1];
+    document.getElementById("home-last-message").textContent = last
+      ? (last.author + ": " + last.text)
+      : "No messages yet — say hello in Chat Mesh.";
+  }
+
+  let hasSentMessage = false;
+  function sendMessage() {
+    const input = document.getElementById("chat-input");
+    const val = input.value.trim();
+    if (!val) return;
+    state.channels[state.activeChannel].messages.push({
+      author: state.user || "Guest",
+      text: val,
+      time: timeNow()
+    });
+    input.value = "";
+    renderMessages();
+    if (!hasSentMessage) {
+      hasSentMessage = true;
+      unlockTrophy("message");
+    }
+  }
+  document.getElementById("send-btn").addEventListener("click", sendMessage);
+  document.getElementById("chat-input").addEventListener("keydown", e => { if (e.key === "Enter") sendMessage(); });
+
+  /* ============ CHANNEL CREATION (modal) ============ */
+  function openModal(cfg) {
+    document.getElementById("modal-title").textContent = cfg.title;
+    document.getElementById("modal-body").textContent = cfg.body;
+    const input = document.getElementById("modal-input");
+    input.style.display = cfg.showInput === false ? "none" : "block";
+    input.value = "";
+    input.placeholder = cfg.placeholder || "";
+    document.getElementById("modal-confirm").textContent = cfg.confirmLabel || "Confirm";
+    document.getElementById("modal-backdrop").classList.add("open");
+    if (cfg.showInput !== false) setTimeout(() => input.focus(), 50);
+    modalConfirmHandler = cfg.onConfirm;
+  }
+  function closeModal() {
+    document.getElementById("modal-backdrop").classList.remove("open");
+    modalConfirmHandler = null;
+  }
+  let modalConfirmHandler = null;
+  document.getElementById("modal-cancel").addEventListener("click", closeModal);
+  document.getElementById("modal-backdrop").addEventListener("click", e => {
+    if (e.target.id === "modal-backdrop") closeModal();
+  });
+  document.getElementById("modal-confirm").addEventListener("click", () => {
+    const val = document.getElementById("modal-input").value.trim();
+    if (modalConfirmHandler) modalConfirmHandler(val);
+    closeModal();
+  });
+  document.getElementById("modal-input").addEventListener("keydown", e => {
+    if (e.key === "Enter") document.getElementById("modal-confirm").click();
+  });
+
+  let hasCreatedChannel = false;
+  document.getElementById("new-channel-btn").addEventListener("click", () => {
+    openModal({
+      title: "New channel",
+      body: "Give your channel a name. It'll appear in the sidebar.",
+      placeholder: "channel-name",
+      confirmLabel: "Create",
+      onConfirm: (val) => {
+        if (!val) return;
+        let key = val.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+        if (!key) key = "channel";
+        if (state.channels[key]) key += "-" + Date.now().toString(36).slice(-4);
+        state.channels[key] = { label: "# " + val, messages: [] };
+        switchChannel(key);
+        if (!hasCreatedChannel) {
+          hasCreatedChannel = true;
+          unlockTrophy("channel");
         }
+      }
+    });
+  });
 
-        function switchChannel(channelName, element) {
-            document.querySelectorAll('.channel').forEach(c => c.classList.remove('active'));
-            element.classList.add('active');
-            document.getElementById('current-channel').innerText = channelName;
-            document.getElementById('chat-input').placeholder = `Message ${channelName}...`;
-        }
+  /* ============ GAMES ============ */
+  function renderGames() {
+    const row = document.getElementById("games-row");
+    row.innerHTML = "";
+    GAMES.forEach(g => {
+      const tile = document.createElement("div");
+      tile.className = "game-tile";
+      tile.innerHTML =
+        '<div class="ic">' + ICONS.controller + '</div>' +
+        '<div><b>' + escapeHtml(g.title) + '</b><span>ORION ORIGINAL</span></div>';
+      tile.addEventListener("click", () => { window.location.href = "games.html"; });
+      row.appendChild(tile);
+    });
+  }
+  document.getElementById("full-library-btn").addEventListener("click", () => {
+    window.location.href = "games.html";
+  });
 
-        function sendMessage() {
-            const input = document.getElementById('chat-input');
-            const messageText = input.value.trim();
+  /* ============ TROPHIES ============ */
+  function renderTrophies() {
+    const grid = document.getElementById("trophy-grid");
+    grid.innerHTML = "";
+    TROPHIES.forEach(t => {
+      const unlocked = state.unlocked.has(t.id);
+      const card = document.createElement("div");
+      card.className = "trophy-card glass tier-" + t.tier + " " + (unlocked ? "unlocked" : "locked");
+      card.innerHTML =
+        '<div class="trophy-ic">' + (unlocked ? ICONS.trophy : ICONS.lock) + '</div>' +
+        '<div><b>' + (unlocked ? escapeHtml(t.title) : "Locked trophy") + '</b>' +
+        '<p>' + (unlocked ? escapeHtml(t.desc) : "Keep exploring Orion OS to unlock this.") + '</p>' +
+        '<div class="tier-label">' + t.tier + '</div></div>';
+      grid.appendChild(card);
+    });
 
-            if (!messageText) return;
+    const count = state.unlocked.size;
+    const total = TROPHIES.length;
+    document.getElementById("progress-fill").style.width = (count / total * 100) + "%";
+    document.getElementById("progress-label").textContent = count + " / " + total + " earned";
+    document.getElementById("quick-trophy-count").textContent = count + " of " + total + " earned";
 
-            const chatHistory = document.getElementById('chat-history');
-            const msgBubble = document.createElement('div');
-            msgBubble.className = 'msg-bubble';
-            msgBubble.innerHTML = `
-                <div class="msg-author">${currentUser || 'Anonymous'}</div>
-                <div>${messageText}</div>
-            `;
+    const earnedNonPlatinum = TROPHIES.filter(t => t.id !== "platinum" && state.unlocked.has(t.id));
+    if (earnedNonPlatinum.length) {
+      const latest = earnedNonPlatinum[earnedNonPlatinum.length - 1];
+      document.getElementById("home-trophy-title").textContent = latest.title;
+      document.getElementById("home-trophy-sub").textContent = count + " of " + total + " trophies earned";
+    }
+  }
 
-            chatHistory.appendChild(msgBubble);
-            input.value = '';
-            chatHistory.scrollTop = chatHistory.scrollHeight;
-        }
+  function unlockTrophy(id) {
+    if (state.unlocked.has(id)) return;
+    const trophy = TROPHIES.find(t => t.id === id);
+    if (!trophy) return;
+    state.unlocked.add(id);
+    renderTrophies();
+    showTrophyToast(trophy);
+    pushNotification("Trophy unlocked", "<b>" + escapeHtml(trophy.title) + "</b> — " + escapeHtml(trophy.desc));
 
-        function createGroup() {
-            const groupName = prompt("Enter new channel name:");
-            if (groupName) {
-                const channelList = document.getElementById('channel-list');
-                const newChannel = document.createElement('div');
-                newChannel.className = 'channel';
-                const formattedName = groupName.startsWith('#') ? groupName : `# ${groupName}`;
-                newChannel.innerText = formattedName;
-                newChannel.onclick = function() { switchChannel(formattedName, this); };
-                channelList.appendChild(newChannel);
-            }
-        }
-    </script>
+    const allEarned = TROPHIES.filter(t => t.id !== "platinum").every(t => state.unlocked.has(t.id));
+    if (allEarned && !state.unlocked.has("platinum")) {
+      setTimeout(() => unlockTrophy("platinum"), 1200);
+    }
+  }
+
+  let toastTimer = null;
+  function showTrophyToast(trophy) {
+    const toast = document.getElementById("trophy-toast");
+    const ic = document.getElementById("toast-ic");
+    ic.className = "trophy-ic tier-" + trophy.tier;
+    ic.innerHTML = ICONS.trophy;
+    document.getElementById("toast-name").textContent = trophy.title;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 3600);
+  }
+
+  /* ============ NOTIFICATIONS ============ */
+  function pushNotification(title, bodyHtml) {
+    state.notifications.unshift({ title, bodyHtml, time: timeNow() });
+    state.unreadNotifs++;
+    renderNotifications();
+  }
+  function renderNotifications() {
+    const list = document.getElementById("notif-list");
+    list.innerHTML = "";
+    if (!state.notifications.length) {
+      list.innerHTML = '<div class="notif-empty">No notifications yet</div>';
+    } else {
+      state.notifications.forEach(n => {
+        const item = document.createElement("div");
+        item.className = "notif";
+        item.innerHTML = '<span class="dot"></span><div class="body"><p>' + n.bodyHtml + '</p></div>';
+        list.appendChild(item);
+      });
+    }
+    const badge = document.getElementById("bell-badge");
+    badge.hidden = state.unreadNotifs === 0;
+  }
+  function closeDropdown() {
+    document.getElementById("notif-dropdown").classList.remove("open");
+  }
+  document.getElementById("bell-btn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    document.getElementById("notif-dropdown").classList.toggle("open");
+    state.unreadNotifs = 0;
+    document.getElementById("bell-badge").hidden = true;
+  });
+  document.addEventListener("click", (e) => {
+    const dd = document.getElementById("notif-dropdown");
+    if (dd.classList.contains("open") && !dd.contains(e.target) && e.target.id !== "bell-btn") {
+      closeDropdown();
+    }
+  });
+
+  /* ============ POWER / SIGN OUT ============ */
+  document.getElementById("power-btn").addEventListener("click", () => {
+    openModal({
+      title: "Sign out?",
+      body: "You'll return to the Orion OS sign-in screen. Your session progress stays until you close the tab.",
+      showInput: false,
+      confirmLabel: "Sign out",
+      onConfirm: () => {
+        document.getElementById("app").style.display = "none";
+        const authScreen = document.getElementById("auth-screen");
+        authScreen.style.display = "flex";
+        authScreen.style.opacity = "1";
+        document.getElementById("auth-username").value = "";
+        document.getElementById("auth-username").focus();
+      }
+    });
+  });
+
+  /* ============ PWA INSTALL ============ */
+  let deferredPrompt = null;
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById("install-btn").hidden = false;
+  });
+  document.getElementById("install-btn").addEventListener("click", async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    document.getElementById("install-btn").hidden = true;
+  });
+
+  /* ============ INIT ============ */
+  renderChannelList();
+  renderMessages();
+  renderGames();
+  renderTrophies();
+  renderNotifications();
+})();
+</script>
 </body>
 </html>
