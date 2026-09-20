@@ -1098,3 +1098,837 @@
 </script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#020306">
+<title>GCD VI — Orion OS</title>
+<style>
+  :root{
+    --os-bg:#020306;
+    --os-surface:rgba(255,255,255,.045);
+    --os-line:rgba(255,255,255,.09);
+    --os-blue:#0072ce;
+    --os-blue-glow:#57b2ff;
+    --os-white:#f3f4f7;
+    --os-grey:#8a8c98;
+    --os-grey-dim:#5b5d68;
+    --radius-lg:18px;
+    --radius-md:12px;
+    --radius-sm:8px;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:ui-monospace,"Courier New",Courier,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:var(--font);}
+  html,body{height:100%;overflow:hidden;background:var(--os-bg);}
+  body{color:var(--os-white);-webkit-font-smoothing:antialiased;user-select:none;}
+  button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;}
+  *:focus-visible{outline:2px solid var(--os-blue-glow);outline-offset:2px;}
+  .glass{background:var(--os-surface);backdrop-filter:blur(26px);-webkit-backdrop-filter:blur(26px);border:1px solid var(--os-line);border-radius:var(--radius-lg);}
+
+  canvas{display:block;position:fixed;inset:0;}
+  #world{z-index:0;}
+  #minimap{z-index:40;position:fixed;bottom:18px;right:18px;width:190px;height:130px;border-radius:var(--radius-sm);border:1px solid var(--os-line);}
+
+  /* ---------- Start screen ---------- */
+  #start-screen{
+    position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 78% -6%, rgba(0,114,206,.22), transparent 45%),
+               radial-gradient(circle at -6% 108%, rgba(0,114,206,.12), transparent 42%), var(--os-bg);
+    overflow:hidden;
+  }
+  .start-stripes{
+    position:absolute;top:50%;left:50%;width:1200px;height:200px;transform:translate(-50%,-50%) rotate(-6deg);
+    background:repeating-linear-gradient(to bottom,transparent 0 22px,rgba(255,255,255,.035) 22px 40px,transparent 40px 62px,rgba(0,114,206,.06) 62px 80px);
+    pointer-events:none;
+  }
+  .start-card{position:relative;width:420px;max-width:92vw;padding:46px 40px;text-align:center;}
+  .start-card .tag{font-size:11px;font-weight:700;letter-spacing:4px;color:var(--os-blue-glow);margin-bottom:10px;}
+  .start-card h1{font-family:var(--font-mono);font-weight:800;font-size:34px;letter-spacing:2px;line-height:1.1;margin-bottom:6px;}
+  .start-card .sub{font-size:12.5px;color:var(--os-grey);letter-spacing:1px;margin-bottom:26px;}
+  .start-card .desc{font-size:13px;color:var(--os-grey);line-height:1.6;margin-bottom:26px;}
+  .start-btn{
+    width:100%;padding:15px;background:var(--os-white);color:#0a0a0c;font-weight:800;font-size:14px;
+    letter-spacing:.5px;border-radius:var(--radius-sm);transition:background .2s;margin-bottom:22px;
+  }
+  .start-btn:hover{background:var(--os-blue-glow);}
+  .controls-list{display:flex;flex-direction:column;gap:7px;text-align:left;font-size:12px;color:var(--os-grey);margin-bottom:22px;}
+  .controls-list div{display:flex;justify-content:space-between;}
+  .controls-list b{color:var(--os-white);font-weight:600;}
+  .back-home{font-size:12px;color:var(--os-grey-dim);}
+  .back-home:hover{color:var(--os-white);}
+
+  /* ---------- HUD ---------- */
+  #hud{position:fixed;inset:0;z-index:30;pointer-events:none;}
+  #hud a, #hud button{pointer-events:auto;}
+  .hud-corner{position:fixed;display:flex;flex-direction:column;gap:8px;}
+  #hud-tl{top:16px;left:16px;}
+  #hud-tr{top:16px;right:16px;align-items:flex-end;}
+  #hud-bl{bottom:18px;left:16px;}
+  .back-link{
+    display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--os-grey);
+    background:rgba(0,0,0,.4);padding:7px 12px;border-radius:999px;width:fit-content;transition:color .2s;
+  }
+  .back-link:hover{color:var(--os-white);}
+  #area-name{
+    font-size:13px;font-weight:700;background:rgba(0,0,0,.4);padding:7px 13px;border-radius:999px;width:fit-content;
+    backdrop-filter:blur(10px);
+  }
+  #clock-weather{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.4);padding:6px 8px 6px 14px;border-radius:999px;backdrop-filter:blur(10px);}
+  #clock{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;}
+  #weather-btn{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;transition:background .2s;}
+  #weather-btn:hover{background:rgba(255,255,255,.12);}
+  #speedo{background:rgba(0,0,0,.4);padding:10px 16px;border-radius:var(--radius-sm);backdrop-filter:blur(10px);margin-bottom:8px;}
+  #speed-val{font-family:var(--font-mono);font-size:26px;font-weight:800;}
+  #speedo .unit{font-size:10px;color:var(--os-grey);letter-spacing:1px;margin-left:4px;}
+  #radio-btn{
+    display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.4);padding:9px 14px;border-radius:999px;
+    backdrop-filter:blur(10px);font-size:12px;font-weight:600;color:var(--os-grey);transition:color .2s;
+  }
+  #radio-btn:hover{color:var(--os-white);}
+  #radio-btn svg{width:15px;height:15px;flex-shrink:0;}
+  #controls-hint{
+    position:fixed;bottom:18px;left:50%;transform:translateX(-50%);font-size:11.5px;color:rgba(255,255,255,.55);
+    background:rgba(0,0,0,.35);padding:6px 14px;border-radius:999px;transition:opacity .8s;z-index:31;
+    white-space:nowrap;
+  }
+  #controls-hint.hidden{opacity:0;}
+
+  /* ---------- Achievement toast ---------- */
+  #achv-toast{
+    position:fixed;top:20px;left:50%;z-index:8000;display:flex;align-items:center;gap:13px;padding:13px 20px 13px 14px;
+    transform:translate(-50%,-140%);opacity:0;transition:transform .5s cubic-bezier(.2,.8,.2,1),opacity .4s;
+  }
+  #achv-toast.show{transform:translate(-50%,0);opacity:1;}
+  #achv-toast .ic{width:40px;height:40px;border-radius:var(--radius-sm);background:rgba(87,178,255,.16);color:var(--os-blue-glow);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  #achv-toast .ic svg{width:21px;height:21px;}
+  .achv-label{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--os-blue-glow);}
+  .achv-name{font-size:14px;font-weight:700;margin-top:2px;}
+
+  /* ---------- Pause overlay ---------- */
+  #pause-overlay{
+    position:fixed;inset:0;z-index:7000;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;
+  }
+  #pause-overlay.open{display:flex;}
+  .pause-card{width:320px;padding:32px;text-align:center;}
+  .pause-card h2{font-size:20px;font-weight:300;margin-bottom:18px;}
+  .pause-card .controls-list{margin-bottom:22px;}
+  .pause-card button.primary{width:100%;padding:13px;background:var(--os-white);color:#0a0a0c;font-weight:700;font-size:13px;border-radius:var(--radius-sm);margin-bottom:10px;transition:background .2s;}
+  .pause-card button.primary:hover{background:var(--os-blue-glow);}
+  .pause-card a.secondary{display:block;padding:12px;font-size:13px;color:var(--os-grey);border:1px solid var(--os-line);border-radius:var(--radius-sm);transition:color .2s,border-color .2s;}
+  .pause-card a.secondary:hover{color:var(--os-white);border-color:var(--os-blue);}
+
+  /* ---------- Touch controls ---------- */
+  #touch-controls{position:fixed;inset:0;z-index:32;pointer-events:none;display:none;}
+  #touch-controls.active{display:block;}
+  .tbtn{
+    position:fixed;width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;
+    pointer-events:auto;backdrop-filter:blur(8px);
+  }
+  .tbtn:active,.tbtn.pressed{background:rgba(87,178,255,.28);}
+  .tbtn svg{width:26px;height:26px;color:#fff;}
+  #t-left{bottom:26px;left:20px;}
+  #t-right{bottom:26px;left:96px;}
+  #t-gas{bottom:96px;right:20px;}
+  #t-brake{bottom:26px;right:20px;}
+
+  @media (max-width:760px){
+    #hud-tr{align-items:flex-end;}
+    .controls-list{display:none;}
+    #controls-hint{display:none;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{transition-duration:.001ms !important;}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="world"></canvas>
+<canvas id="minimap"></canvas>
+
+<!-- ================= START SCREEN ================= -->
+<div id="start-screen">
+  <div class="start-stripes"></div>
+  <div class="start-card glass">
+    <div class="tag">ORION OS EXCLUSIVE</div>
+    <h1>GRAND CRIME<br>DRIVE VI</h1>
+    <div class="sub">NORTHEAST OHIO EDITION</div>
+    <p class="desc">Drive the corridor between Corvale and Ashcroft — two fictional cities, one highway, and everything in between.</p>
+    <button class="start-btn" id="start-btn" type="button">START DRIVING</button>
+    <div class="controls-list">
+      <div><span>Drive</span><b>WASD / Arrow keys</b></div>
+      <div><span>Radio</span><b>R</b></div>
+      <div><span>Weather</span><b>V</b></div>
+      <div><span>Pause</span><b>Esc</b></div>
+    </div>
+    <a class="back-home" href="index.html">&larr; Back to Orion OS</a>
+  </div>
+</div>
+
+<!-- ================= HUD ================= -->
+<div id="hud" hidden>
+  <div class="hud-corner" id="hud-tl">
+    <a class="back-link" href="index.html">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      Orion OS
+    </a>
+    <div id="area-name">Route 216/330 Corridor</div>
+  </div>
+  <div class="hud-corner" id="hud-tr">
+    <div id="clock-weather">
+      <span id="clock">8:00 AM</span>
+      <button id="weather-btn" type="button" title="Change weather (V)"><span id="weather-icon">☀️</span></button>
+    </div>
+  </div>
+  <div class="hud-corner" id="hud-bl">
+    <div id="speedo"><span id="speed-val">0</span><span class="unit">MPH</span></div>
+    <button id="radio-btn" type="button" title="Change station (R)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v-4a8 8 0 0 1 16 0v4"/><rect x="2" y="15" width="6" height="6" rx="1.5"/><rect x="16" y="15" width="6" height="6" rx="1.5"/></svg>
+      <span id="radio-name">Radio Off</span>
+    </button>
+  </div>
+</div>
+<div id="controls-hint">WASD / Arrows to drive · R for radio · V for weather · Esc to pause</div>
+
+<!-- ================= TOUCH CONTROLS ================= -->
+<div id="touch-controls">
+  <div class="tbtn" id="t-left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></div>
+  <div class="tbtn" id="t-right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div>
+  <div class="tbtn" id="t-brake"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
+  <div class="tbtn" id="t-gas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></div>
+</div>
+
+<!-- ================= ACHIEVEMENT TOAST ================= -->
+<div id="achv-toast" class="glass">
+  <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v4a4 4 0 0 1-8 0V4Z"/><path d="M8 5H5a3 3 0 0 0 3 4"/><path d="M16 5h3a3 3 0 0 1-3 4"/><path d="M12 12v4"/><path d="M9 20h6"/><path d="M10 16h4v4h-4z"/></svg></div>
+  <div><div class="achv-label">ACHIEVEMENT UNLOCKED</div><div class="achv-name" id="achv-name"></div></div>
+</div>
+
+<!-- ================= PAUSE OVERLAY ================= -->
+<div id="pause-overlay">
+  <div class="pause-card glass">
+    <h2>Paused</h2>
+    <div class="controls-list">
+      <div><span>Drive</span><b>WASD / Arrows</b></div>
+      <div><span>Radio</span><b>R</b></div>
+      <div><span>Weather</span><b>V</b></div>
+    </div>
+    <button class="primary" id="resume-btn" type="button">Resume</button>
+    <a class="secondary" href="index.html">Back to Orion OS</a>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  /* ============================================================
+     WORLD DATA
+     ============================================================ */
+  const WORLD_W = 6400, WORLD_H = 2600;
+
+  function mulberry32(seed){
+    return function(){
+      seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+      let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  const rand = mulberry32(216330);
+
+  const roads = [];
+  const buildings = [];
+  const trees = [];
+  function addRoad(x1,y1,x2,y2,w){ roads.push({x1,y1,x2,y2,w}); }
+
+  const corvale        = { x:150,  y:280,  w:1000, h:720, name:"Downtown Corvale", id:"216" };
+  const corvaleLake     = { x:150,  y:150,  w:1000, h:130, name:"Corvale Lakefront" };
+  const suburbA         = { x:1280, y:350,  w:560,  h:820, name:"Maplewood Heights" };
+  const forestZone      = { x:2050, y:150,  w:1050, h:1250, name:"Cuyahoga Woods" };
+  const smallTown       = { x:3350, y:1000, w:520,  h:420, name:"Milltown" };
+  const suburbB         = { x:4180, y:1250, w:640,  h:640, name:"Ridgeview" };
+  const ashcroft        = { x:5100, y:1380, w:940,  h:760, name:"Downtown Ashcroft", id:"330" };
+  const ZONES = [corvaleLake, corvale, suburbA, forestZone, smallTown, suburbB, ashcroft];
+
+  const hiddenMarker = { x: 2760, y: 260 };
+
+  function makeGrid(b, cols, rows, roadW, palette, maxHeight){
+    const xs = []; for (let i=0;i<=cols;i++) xs.push(b.x + (b.w)*i/cols);
+    const ys = []; for (let j=0;j<=rows;j++) ys.push(b.y + (b.h)*j/rows);
+    xs.forEach(x => addRoad(x, b.y, x, b.y+b.h, roadW));
+    ys.forEach(y => addRoad(b.x, y, b.x+b.w, y, roadW));
+    const cx = b.x + b.w/2, cy = b.y + b.h/2;
+    for (let i=0;i<cols;i++){
+      for (let j=0;j<rows;j++){
+        if (rand() < 0.13) continue;
+        const bx0 = xs[i]+11, bx1 = xs[i+1]-11, by0 = ys[j]+11, by1 = ys[j+1]-11;
+        if (bx1<=bx0 || by1<=by0) continue;
+        const ccx=(bx0+bx1)/2, ccy=(by0+by1)/2;
+        const d = Math.hypot(ccx-cx, ccy-cy);
+        const height = Math.max(18, maxHeight - d*0.045 + rand()*30);
+        buildings.push({x:bx0,y:by0,w:bx1-bx0,h:by1-by0,height,color:palette[(rand()*palette.length)|0]});
+      }
+    }
+  }
+
+  function scatterHouses(zone, count, palette){
+    for (let k=0;k<count;k++){
+      const w = 26+rand()*16, h = 22+rand()*12;
+      const x = zone.x + rand()*(zone.w-w), y = zone.y + rand()*(zone.h-h);
+      buildings.push({x,y,w,h,height:14,color:palette[(rand()*palette.length)|0],house:true});
+    }
+  }
+
+  function scatterTrees(zone, count){
+    for (let k=0;k<count;k++){
+      trees.push({x:zone.x+rand()*zone.w, y:zone.y+rand()*zone.h, r:9+rand()*9});
+    }
+  }
+
+  function loopRoad(zone, w){
+    addRoad(zone.x, zone.y, zone.x+zone.w, zone.y, w);
+    addRoad(zone.x+zone.w, zone.y, zone.x+zone.w, zone.y+zone.h, w);
+    addRoad(zone.x+zone.w, zone.y+zone.h, zone.x, zone.y+zone.h, w);
+    addRoad(zone.x, zone.y+zone.h, zone.x, zone.y, w);
+    addRoad(zone.x, zone.y+zone.h/2, zone.x+zone.w, zone.y+zone.h/2, w*0.8);
+  }
+
+  const palCorvale  = ["#2b3a55","#33455f","#3c5068","#243247","#465a73"];
+  const palAshcroft = ["#4a4038","#5a4d3f","#463b30","#5f5344","#3d332a"];
+  const palHouse    = ["#5c4a3d","#4d5a48","#57493f","#3f4a54"];
+
+  function initWorld(){
+    makeGrid(corvale, 5, 4, 58, palCorvale, 150);
+    makeGrid(ashcroft, 4, 3, 55, palAshcroft, 95);
+    loopRoad(suburbA, 46);
+    loopRoad(suburbB, 46);
+    scatterHouses(suburbA, 46, palHouse);
+    scatterHouses(suburbB, 40, palHouse);
+    scatterHouses(smallTown, 22, palHouse);
+    loopRoad(smallTown, 42);
+    scatterTrees(forestZone, 210);
+    scatterTrees({x:1700,y:100,w:350,h:1400}, 40);
+    scatterTrees({x:4900,y:150,w:250,h:1200}, 30);
+
+    // highway spine
+    const H = [{x:700,y:960},{x:1300,y:1010},{x:1900,y:1160},{x:2550,y:1260},
+               {x:3250,y:1310},{x:3900,y:1420},{x:4600,y:1520},{x:5300,y:1660},{x:5650,y:1760}];
+    for (let i=0;i<H.length-1;i++) addRoad(H[i].x,H[i].y,H[i+1].x,H[i+1].y,110);
+
+    // connectors
+    addRoad(700,960, 650,700, 60);           // corvale -> highway
+    addRoad(1300,1010, 1560,760, 50);        // suburbA -> highway
+    addRoad(3250,1310, 3600,1200, 46);       // smalltown spur
+    addRoad(4600,1520, 4500,1560, 50);       // suburbB -> highway
+    addRoad(5650,1760, 5570,1760, 90);       // highway -> ashcroft
+  }
+  initWorld();
+
+  /* ============================================================
+     ZONE / AREA LOOKUP
+     ============================================================ */
+  function inRect(x,y,z){ return x>=z.x && x<=z.x+z.w && y>=z.y && y<=z.y+z.h; }
+  function currentZone(x,y){
+    for (const z of ZONES) if (inRect(x,y,z)) return z;
+    return null;
+  }
+
+  /* ============================================================
+     ENTITIES
+     ============================================================ */
+  const player = { x:700, y:990, heading:0, vx:0, vy:0, speed:0 };
+
+  const traffic = [
+    { path:[{x:250,y:350},{x:1050,y:350},{x:1050,y:900},{x:250,y:900}], idx:0, speed:170 },
+    { path:[{x:350,y:560},{x:950,y:560}], idx:0, speed:140 },
+    { path:[{x:700,y:960},{x:1900,y:1160},{x:3250,y:1310},{x:4600,y:1520},{x:5650,y:1760}], idx:0, speed:230 },
+    { path:[{x:5650,y:1760},{x:4600,y:1520},{x:3250,y:1310},{x:1900,y:1160},{x:700,y:960}], idx:0, speed:210 },
+    { path:[{x:5150,y:1450},{x:5980,y:1450},{x:5980,y:2050},{x:5150,y:2050}], idx:0, speed:150 },
+    { path:[{x:1280,y:350},{x:1840,y:350},{x:1840,y:1170},{x:1280,y:1170}], idx:0, speed:130 },
+  ].map(t => ({ x:t.path[0].x, y:t.path[0].y, heading:0, speed:t.speed, path:t.path, idx:1,
+                color:["#c65b5b","#5b8fc6","#c6ac5b","#8f8f8f","#6bb08a"][(Math.random()*5)|0] }));
+
+  const pedestrians = [];
+  function addPed(x,y,dx,dy){ pedestrians.push({x,y,a:{x,y},b:{x:x+dx,y:y+dy},t:Math.random(),dir:1,speed:0.15+Math.random()*0.1}); }
+  for (let i=0;i<9;i++) addPed(300+rand()*700, 320+rand()*550, (rand()-0.5)*160, (rand()-0.5)*160);
+  for (let i=0;i<7;i++) addPed(5200+rand()*600, 1420+rand()*500, (rand()-0.5)*140, (rand()-0.5)*140);
+
+  /* ============================================================
+     TIME / WEATHER
+     ============================================================ */
+  let gameMinutes = 8*60;
+  function isNight(){ return gameMinutes < 360 || gameMinutes >= 1200; }
+  function updateTime(dt){ gameMinutes = (gameMinutes + dt*4) % 1440; }
+  function clockLabel(){
+    let h = Math.floor(gameMinutes/60), m = Math.floor(gameMinutes%60);
+    const ampm = h>=12 ? "PM" : "AM";
+    let h12 = h%12; if (h12===0) h12=12;
+    return h12 + ":" + String(m).padStart(2,"0") + " " + ampm;
+  }
+
+  const WEATHERS = ["clear","rain","snow","fog"];
+  const WEATHER_ICON = { clear:"☀️", rain:"🌧️", snow:"❄️", fog:"🌫️" };
+  let weather = "clear";
+  let weatherIndex = 0;
+  const weatherSeen = new Set(["clear"]);
+  const particles = [];
+  function cycleWeather(){
+    weatherIndex = (weatherIndex+1) % WEATHERS.length;
+    weather = WEATHERS[weatherIndex];
+    weatherSeen.add(weather);
+    document.getElementById("weather-icon").textContent = WEATHER_ICON[weather];
+    particles.length = 0;
+    const count = weather==="rain" ? 140 : weather==="snow" ? 110 : 0;
+    for (let i=0;i<count;i++) particles.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,z:Math.random()});
+    if (weatherSeen.size >= 4) unlock("four_seasons");
+  }
+  function weatherTraction(){ return weather==="rain" ? 0.82 : weather==="snow" ? 0.62 : 1; }
+
+  /* ============================================================
+     ACHIEVEMENTS
+     ============================================================ */
+  const ACHIEVEMENTS = {
+    orion_pilot:  { title:"Orion Pilot",  desc:"Launched GCD VI through Orion OS." },
+    first_drive:  { title:"First Drive",  desc:"Completed your first drive." },
+    "216":        { title:"216",          desc:"Discovered Corvale, the western city." },
+    "330":        { title:"330",          desc:"Discovered Ashcroft, the eastern city." },
+    road_trip:    { title:"Road Trip",    desc:"Traveled from one major city to the other." },
+    lake_effect:  { title:"Lake Effect",  desc:"Visited the lakefront." },
+    night_drive:  { title:"Night Drive",  desc:"Drove after dark." },
+    off_the_map:  { title:"Off the Map",  desc:"Discovered a hidden location." },
+    four_seasons: { title:"Four Seasons", desc:"Experienced every weather condition." }
+  };
+  const unlocked = new Set();
+  let toastTimer = null;
+  function unlock(id){
+    if (unlocked.has(id) || !ACHIEVEMENTS[id]) return;
+    unlocked.add(id);
+    const a = ACHIEVEMENTS[id];
+    document.getElementById("achv-name").textContent = a.title;
+    const toast = document.getElementById("achv-toast");
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 3400);
+  }
+
+  /* ============================================================
+     RADIO (original synthesized ambience — no external audio)
+     ============================================================ */
+  const STATIONS = [
+    { name:"Radio Off" },
+    { name:"CITY FM",     f1:220,   f2:330,   filter:1000, w1:"sawtooth", w2:"triangle" },
+    { name:"NIGHT DRIVE",  f1:110,   f2:164.8, filter:600,  w1:"sine",     w2:"sine" },
+    { name:"OHIO WAVE",    f1:164.8, f2:246.9, filter:1500, w1:"triangle", w2:"sawtooth" },
+    { name:"ROCK DISTRICT",f1:196,   f2:392,   filter:2200, w1:"square",   w2:"sawtooth" }
+  ];
+  let radioIndex = 0;
+  const radio = { ctx:null };
+  function ensureAudio(){
+    if (radio.ctx) return;
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    radio.ctx = new Ctx();
+    radio.gain = radio.ctx.createGain(); radio.gain.gain.value = 0;
+    radio.filter = radio.ctx.createBiquadFilter(); radio.filter.type = "lowpass";
+    radio.osc1 = radio.ctx.createOscillator(); radio.osc1.type = "sawtooth"; radio.osc1.frequency.value = 220;
+    radio.osc2 = radio.ctx.createOscillator(); radio.osc2.type = "triangle"; radio.osc2.frequency.value = 330;
+    radio.lfo = radio.ctx.createOscillator(); radio.lfo.type = "sine"; radio.lfo.frequency.value = 0.12;
+    radio.lfoGain = radio.ctx.createGain(); radio.lfoGain.gain.value = 220;
+    radio.lfo.connect(radio.lfoGain); radio.lfoGain.connect(radio.filter.frequency);
+    radio.osc1.connect(radio.filter); radio.osc2.connect(radio.filter);
+    radio.filter.connect(radio.gain); radio.gain.connect(radio.ctx.destination);
+    radio.osc1.start(); radio.osc2.start(); radio.lfo.start();
+  }
+  function tuneStation(){
+    document.getElementById("radio-name").textContent = STATIONS[radioIndex].name;
+    if (!radio.ctx) return;
+    const s = STATIONS[radioIndex];
+    const t = radio.ctx.currentTime;
+    if (radioIndex === 0){ radio.gain.gain.linearRampToValueAtTime(0, t+0.3); return; }
+    radio.osc1.type = s.w1; radio.osc2.type = s.w2;
+    radio.osc1.frequency.setTargetAtTime(s.f1, t, 0.15);
+    radio.osc2.frequency.setTargetAtTime(s.f2, t, 0.15);
+    radio.filter.frequency.setTargetAtTime(s.filter, t, 0.15);
+    radio.gain.gain.linearRampToValueAtTime(0.05, t+0.4);
+  }
+  function cycleRadio(){
+    ensureAudio();
+    if (radio.ctx && radio.ctx.state === "suspended") radio.ctx.resume();
+    radioIndex = (radioIndex+1) % STATIONS.length;
+    tuneStation();
+  }
+
+  /* ============================================================
+     INPUT
+     ============================================================ */
+  const input = { up:false, down:false, left:false, right:false };
+  let started = false, paused = false, hintHidden = false;
+
+  function hideHint(){
+    if (hintHidden) return;
+    hintHidden = true;
+    document.getElementById("controls-hint").classList.add("hidden");
+  }
+
+  window.addEventListener("keydown", e => {
+    if (!started) return;
+    if (e.key === "Escape"){ togglePause(); return; }
+    if (paused) return;
+    switch (e.key){
+      case "ArrowUp": case "w": case "W": input.up = true; hideHint(); break;
+      case "ArrowDown": case "s": case "S": input.down = true; break;
+      case "ArrowLeft": case "a": case "A": input.left = true; break;
+      case "ArrowRight": case "d": case "D": input.right = true; break;
+      case "r": case "R": cycleRadio(); break;
+      case "v": case "V": cycleWeather(); break;
+    }
+    if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key)) e.preventDefault();
+  });
+  window.addEventListener("keyup", e => {
+    switch (e.key){
+      case "ArrowUp": case "w": case "W": input.up = false; break;
+      case "ArrowDown": case "s": case "S": input.down = false; break;
+      case "ArrowLeft": case "a": case "A": input.left = false; break;
+      case "ArrowRight": case "d": case "D": input.right = false; break;
+    }
+  });
+
+  function bindTouch(id, key){
+    const el = document.getElementById(id);
+    const on = e => { e.preventDefault(); input[key]=true; el.classList.add("pressed"); if(key==="up") hideHint(); };
+    const off = e => { e.preventDefault(); input[key]=false; el.classList.remove("pressed"); };
+    el.addEventListener("touchstart", on, {passive:false});
+    el.addEventListener("touchend", off);
+    el.addEventListener("touchcancel", off);
+    el.addEventListener("mousedown", on);
+    window.addEventListener("mouseup", off);
+  }
+  if ("ontouchstart" in window || (window.matchMedia && matchMedia("(pointer: coarse)").matches)){
+    document.getElementById("touch-controls").classList.add("active");
+    bindTouch("t-left","left"); bindTouch("t-right","right");
+    bindTouch("t-gas","up"); bindTouch("t-brake","down");
+  }
+
+  document.getElementById("weather-btn").addEventListener("click", cycleWeather);
+  document.getElementById("radio-btn").addEventListener("click", cycleRadio);
+
+  /* ============================================================
+     PHYSICS
+     ============================================================ */
+  const ENGINE=520, BRAKE=760, DRAG=1.15, TURN_RATE=2.7, MAXSPEED=520;
+
+  function distToSeg(px,py,x1,y1,x2,y2){
+    const dx=x2-x1, dy=y2-y1, lenSq=dx*dx+dy*dy;
+    let t = lenSq ? ((px-x1)*dx+(py-y1)*dy)/lenSq : 0;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px-(x1+t*dx), py-(y1+t*dy));
+  }
+  function isOnRoad(x,y){
+    for (const r of roads) if (distToSeg(x,y,r.x1,r.y1,r.x2,r.y2) <= r.w/2) return true;
+    return false;
+  }
+  function collidesBuilding(x,y){
+    for (const b of buildings){
+      if (!b.house && x>b.x-6 && x<b.x+b.w+6 && y>b.y-6 && y<b.y+b.h+6) return true;
+    }
+    return false;
+  }
+  function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
+
+  function updateCar(dt){
+    if (input.up && !unlocked.has("first_drive")) unlock("first_drive");
+    const accel = input.up ? ENGINE : (input.down ? -BRAKE : 0);
+    const onRoad = isOnRoad(player.x, player.y);
+    const tractionRate = (onRoad ? 13 : 5) * weatherTraction();
+
+    let speedAlong = player.vx*Math.cos(player.heading) + player.vy*Math.sin(player.heading);
+    speedAlong += accel*dt;
+    speedAlong *= Math.exp(-DRAG*dt);
+    speedAlong = clamp(speedAlong, -MAXSPEED*0.35, MAXSPEED);
+
+    const steer = input.left ? -1 : (input.right ? 1 : 0);
+    const speedFactor = 0.3 + 0.7*Math.min(Math.abs(speedAlong)/(MAXSPEED*0.5), 1);
+    player.heading += steer * TURN_RATE * dt * speedFactor * (speedAlong<0 ? -1 : 1);
+
+    const targetVX = Math.cos(player.heading)*speedAlong;
+    const targetVY = Math.sin(player.heading)*speedAlong;
+    const blend = 1 - Math.exp(-tractionRate*dt);
+    player.vx += (targetVX-player.vx) * blend;
+    player.vy += (targetVY-player.vy) * blend;
+
+    const prevX = player.x, prevY = player.y;
+    let nx = player.x + player.vx*dt, ny = player.y + player.vy*dt;
+    nx = clamp(nx, 40, WORLD_W-40); ny = clamp(ny, 40, WORLD_H-40);
+    if (collidesBuilding(nx,ny)){
+      nx = prevX; ny = prevY;
+      player.vx *= -0.15; player.vy *= -0.15;
+    }
+    player.x = nx; player.y = ny;
+    player.speed = Math.hypot(player.vx, player.vy);
+  }
+
+  function updateTraffic(dt){
+    traffic.forEach(t => {
+      const target = t.path[t.idx];
+      const dx = target.x-t.x, dy = target.y-t.y;
+      const dist = Math.hypot(dx,dy);
+      if (dist < 20){ t.idx = (t.idx+1) % t.path.length; return; }
+      t.heading = Math.atan2(dy,dx);
+      t.x += Math.cos(t.heading) * t.speed * dt;
+      t.y += Math.sin(t.heading) * t.speed * dt;
+    });
+  }
+
+  function updatePedestrians(dt){
+    pedestrians.forEach(p => {
+      p.t += p.dir * p.speed * dt;
+      if (p.t >= 1){ p.t = 1; p.dir = -1; }
+      if (p.t <= 0){ p.t = 0; p.dir = 1; }
+      p.x = p.a.x + (p.b.x-p.a.x)*p.t;
+      p.y = p.a.y + (p.b.y-p.a.y)*p.t;
+    });
+  }
+
+  function checkAchievements(){
+    const z = currentZone(player.x, player.y);
+    document.getElementById("area-name").textContent = z ? z.name : "Route 216/330 Corridor";
+    if (z && z.id === "216") unlock("216");
+    if (z && z.id === "330") unlock("330");
+    if (unlocked.has("216") && unlocked.has("330")) unlock("road_trip");
+    if (z === corvaleLake) unlock("lake_effect");
+    if (isNight() && player.speed > 60) unlock("night_drive");
+    if (Math.hypot(player.x-hiddenMarker.x, player.y-hiddenMarker.y) < 55) unlock("off_the_map");
+  }
+
+  /* ============================================================
+     RENDER
+     ============================================================ */
+  const canvas = document.getElementById("world");
+  const ctx = canvas.getContext("2d");
+  const mini = document.getElementById("minimap");
+  const mctx = mini.getContext("2d");
+  let viewW = innerWidth, viewH = innerHeight;
+
+  function resize(){
+    const dpr = window.devicePixelRatio || 1;
+    viewW = innerWidth; viewH = innerHeight;
+    canvas.width = viewW*dpr; canvas.height = viewH*dpr;
+    canvas.style.width = viewW+"px"; canvas.style.height = viewH+"px";
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const mdpr = window.devicePixelRatio || 1;
+    mini.width = mini.clientWidth*mdpr; mini.height = mini.clientHeight*mdpr;
+    mctx.setTransform(mdpr,0,0,mdpr,0,0);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  function inView(x,y,pad,camX,camY){
+    return x > camX-pad && x < camX+viewW+pad && y > camY-pad && y < camY+viewH+pad;
+  }
+
+  function drawCar(x,y,heading,color,len,wid,lightsOn){
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.rotate(heading);
+    ctx.fillStyle = "rgba(0,0,0,.35)";
+    ctx.fillRect(-len/2+2,-wid/2+2,len,wid);
+    ctx.fillStyle = color;
+    ctx.fillRect(-len/2,-wid/2,len,wid);
+    ctx.fillStyle = "rgba(255,255,255,.5)";
+    ctx.fillRect(-len*0.1,-wid/2+2,len*0.35,wid-4);
+    ctx.fillStyle = "#ff4d4d";
+    ctx.fillRect(-len/2,-wid/2+1,2,wid-2);
+    if (lightsOn){
+      ctx.fillStyle = "#fff7cc";
+      ctx.beginPath(); ctx.arc(len/2-1,-wid/2+2,1.6,0,7); ctx.fill();
+      ctx.beginPath(); ctx.arc(len/2-1,wid/2-2,1.6,0,7); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function render(){
+    const camX = clamp(player.x - viewW/2, -400, WORLD_W-viewW+400);
+    const camY = clamp(player.y - viewH/2, -400, WORLD_H-viewH+400);
+    const night = isNight();
+
+    ctx.fillStyle = night ? "#0b1220" : "#16241a";
+    ctx.fillRect(0,0,viewW,viewH);
+
+    // zone tints
+    ctx.fillStyle = "rgba(255,255,255,.02)";
+    [corvale,ashcroft].forEach(z => ctx.fillRect(z.x-camX,z.y-camY,z.w,z.h));
+    ctx.fillStyle = "rgba(0,0,0,.14)";
+    ctx.fillRect(forestZone.x-camX, forestZone.y-camY, forestZone.w, forestZone.h);
+    ctx.fillStyle = "#123a55";
+    ctx.fillRect(corvaleLake.x-camX, corvaleLake.y-camY, corvaleLake.w, corvaleLake.h);
+
+    // roads
+    roads.forEach(r => {
+      if (!inView(r.x1,r.y1,200,camX,camY) && !inView(r.x2,r.y2,200,camX,camY)) return;
+      ctx.strokeStyle = "#2a2c33"; ctx.lineWidth = r.w; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(r.x1-camX,r.y1-camY); ctx.lineTo(r.x2-camX,r.y2-camY); ctx.stroke();
+      if (r.w > 38){
+        ctx.strokeStyle = "rgba(255,255,255,.22)"; ctx.lineWidth = 3; ctx.setLineDash([18,16]);
+        ctx.beginPath(); ctx.moveTo(r.x1-camX,r.y1-camY); ctx.lineTo(r.x2-camX,r.y2-camY); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    });
+
+    // trees (behind buildings so forest reads as canopy)
+    trees.forEach(t => {
+      if (!inView(t.x,t.y,40,camX,camY)) return;
+      ctx.fillStyle = "#173d24";
+      ctx.beginPath(); ctx.arc(t.x-camX,t.y-camY,t.r,0,7); ctx.fill();
+    });
+
+    // buildings, sorted for pseudo-depth
+    buildings
+      .filter(b => inView(b.x,b.y,120,camX,camY))
+      .sort((a,b) => (a.y+a.h)-(b.y+b.h))
+      .forEach(b => {
+        const sx=b.x-camX, sy=b.y-camY;
+        ctx.fillStyle = "rgba(0,0,0,.35)";
+        ctx.fillRect(sx+b.height*0.1, sy+b.height*0.1, b.w, b.h);
+        ctx.fillStyle = b.color;
+        ctx.fillRect(sx,sy,b.w,b.h);
+        if (b.house){
+          ctx.beginPath();
+          ctx.moveTo(sx-4,sy); ctx.lineTo(sx+b.w/2,sy-13); ctx.lineTo(sx+b.w+4,sy);
+          ctx.closePath(); ctx.fillStyle = "#7a5540"; ctx.fill();
+        }
+        if (night && !b.house && b.height > 40){
+          ctx.fillStyle = "rgba(255,224,130,.5)";
+          for (let i=0;i<3;i++) ctx.fillRect(sx+4+i*(b.w/3), sy+6, 3, 3);
+        }
+      });
+
+    // easter egg marker
+    if (inView(hiddenMarker.x,hiddenMarker.y,40,camX,camY)){
+      const pulse = 5+Math.sin(performance.now()/220)*2;
+      ctx.fillStyle = "rgba(87,178,255,.9)";
+      ctx.beginPath(); ctx.arc(hiddenMarker.x-camX,hiddenMarker.y-camY,pulse,0,7); ctx.fill();
+      ctx.strokeStyle = "rgba(87,178,255,.4)"; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(hiddenMarker.x-camX,hiddenMarker.y-camY,pulse+8,0,7); ctx.stroke();
+    }
+
+    // pedestrians
+    pedestrians.forEach(p => {
+      if (!inView(p.x,p.y,30,camX,camY)) return;
+      ctx.fillStyle = "#d8c9a3";
+      ctx.beginPath(); ctx.arc(p.x-camX,p.y-camY,3.4,0,7); ctx.fill();
+      ctx.fillStyle = "#f0d9b5";
+      ctx.beginPath(); ctx.arc(p.x-camX,p.y-camY-4,2.2,0,7); ctx.fill();
+    });
+
+    // traffic
+    traffic.forEach(t => { if (inView(t.x,t.y,60,camX,camY)) drawCar(t.x-camX,t.y-camY,t.heading,t.color,16,9,night); });
+
+    // player
+    drawCar(player.x-camX, player.y-camY, player.heading, "#57b2ff", 18, 10, night);
+
+    // night overlay + headlight cone
+    if (night){
+      ctx.fillStyle = "rgba(5,8,20,.42)";
+      ctx.fillRect(0,0,viewW,viewH);
+      ctx.save();
+      ctx.translate(player.x-camX, player.y-camY);
+      ctx.rotate(player.heading);
+      const grad = ctx.createRadialGradient(0,0,10,120,0,220);
+      grad.addColorStop(0,"rgba(255,247,204,.16)");
+      grad.addColorStop(1,"rgba(255,247,204,0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,230,-0.5,0.5); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+
+    // weather particles (screen space)
+    if (weather === "rain"){
+      ctx.strokeStyle = "rgba(180,200,255,.35)"; ctx.lineWidth = 1;
+      particles.forEach(p => {
+        p.y += 9 + p.z*7; p.x -= 3;
+        if (p.y > viewH){ p.y = -10; p.x = Math.random()*viewW; }
+        ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(p.x-4,p.y+12); ctx.stroke();
+      });
+    } else if (weather === "snow"){
+      ctx.fillStyle = "rgba(255,255,255,.8)";
+      particles.forEach(p => {
+        p.y += 1 + p.z*1.4; p.x += Math.sin(p.y*0.01)*0.6;
+        if (p.y > viewH){ p.y = -6; p.x = Math.random()*viewW; }
+        ctx.beginPath(); ctx.arc(p.x,p.y,1.6+p.z,0,7); ctx.fill();
+      });
+    } else if (weather === "fog"){
+      const g = ctx.createRadialGradient(viewW/2,viewH/2,80,viewW/2,viewH/2,viewW*0.6);
+      g.addColorStop(0,"rgba(180,185,195,0)");
+      g.addColorStop(1,"rgba(180,185,195,.55)");
+      ctx.fillStyle = g; ctx.fillRect(0,0,viewW,viewH);
+    }
+
+    // minimap
+    mctx.clearRect(0,0,mini.clientWidth,mini.clientHeight);
+    mctx.fillStyle = "rgba(5,6,10,.55)"; mctx.fillRect(0,0,mini.clientWidth,mini.clientHeight);
+    const sx = mini.clientWidth/WORLD_W, sy = mini.clientHeight/WORLD_H;
+    mctx.strokeStyle = "rgba(255,255,255,.3)"; mctx.lineWidth = 1;
+    roads.forEach(r => { mctx.beginPath(); mctx.moveTo(r.x1*sx,r.y1*sy); mctx.lineTo(r.x2*sx,r.y2*sy); mctx.stroke(); });
+    mctx.fillStyle = "#57b2ff";
+    [corvale,ashcroft].forEach(z => { mctx.beginPath(); mctx.arc((z.x+z.w/2)*sx,(z.y+z.h/2)*sy,3,0,7); mctx.fill(); });
+    mctx.strokeStyle = "rgba(255,255,255,.5)"; mctx.lineWidth = 1;
+    mctx.strokeRect(camX*sx, camY*sy, viewW*sx, viewH*sy);
+    mctx.save();
+    mctx.translate(player.x*sx, player.y*sy);
+    mctx.rotate(player.heading);
+    mctx.fillStyle = "#fff";
+    mctx.beginPath(); mctx.moveTo(5,0); mctx.lineTo(-4,-4); mctx.lineTo(-4,4); mctx.closePath(); mctx.fill();
+    mctx.restore();
+
+    document.getElementById("clock").textContent = clockLabel();
+    document.getElementById("speed-val").textContent = Math.round(Math.abs(player.speed)/8);
+  }
+
+  /* ============================================================
+     BOOT / PAUSE FLOW
+     ============================================================ */
+  function togglePause(){
+    paused = !paused;
+    document.getElementById("pause-overlay").classList.toggle("open", paused);
+    if (radio.gain){
+      const t = radio.ctx.currentTime;
+      radio.gain.gain.linearRampToValueAtTime(paused ? 0 : (radioIndex ? 0.05 : 0), t+0.2);
+    }
+  }
+  document.getElementById("resume-btn").addEventListener("click", togglePause);
+
+  document.getElementById("start-btn").addEventListener("click", () => {
+    started = true;
+    document.getElementById("start-screen").style.display = "none";
+    document.getElementById("hud").hidden = false;
+    unlock("orion_pilot");
+    tuneStation();
+  });
+
+  /* ============================================================
+     GAME LOOP
+     ============================================================ */
+  let last = performance.now();
+  function loop(now){
+    requestAnimationFrame(loop);
+    let dt = (now-last)/1000; last = now;
+    dt = Math.min(dt, 0.05);
+    if (started && !paused){
+      updateTime(dt);
+      updateCar(dt);
+      updateTraffic(dt);
+      updatePedestrians(dt);
+      checkAchievements();
+    }
+    render();
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
